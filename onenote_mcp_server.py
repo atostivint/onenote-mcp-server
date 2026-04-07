@@ -455,33 +455,190 @@ async def list_notebooks() -> str:
         logger.error(f"Error in list_notebooks: {str(e)}")
         return f"Error listing notebooks: {str(e)}"
 
+def _parse_sections(raw_list, group_name=None):
+    return [
+        {
+            "id": s.get("id"),
+            "name": s.get("displayName"),
+            "created": s.get("createdDateTime"),
+            "modified": s.get("lastModifiedDateTime"),
+            **({"group_name": group_name} if group_name else {})
+        }
+        for s in raw_list
+    ]
+
+def _parse_section_groups(raw_list):
+    return [
+        {
+            "id": g.get("id"),
+            "name": g.get("displayName"),
+            "created": g.get("createdDateTime"),
+            "modified": g.get("lastModifiedDateTime")
+        }
+        for g in raw_list
+    ]
+
 @mcp.tool()
-async def list_sections(notebook_id: str) -> str:
+async def list_section_groups(notebook_id: str) -> str:
     """
-    List sections in a specific notebook.
-    
+    List section groups (folders) in a specific notebook.
+
     Args:
-        notebook_id: ID of the notebook to list sections from
-    
+        notebook_id: ID of the notebook to list section groups from
+
+    Returns:
+        JSON string containing section group information
+    """
+    try:
+        groups = await make_graph_request(f"/me/onenote/notebooks/{notebook_id}/sectionGroups")
+        return json.dumps(_parse_section_groups(groups.get("value", [])), indent=2)
+    except Exception as e:
+        return f"Error listing section groups: {str(e)}"
+
+@mcp.tool()
+async def list_sections_in_group(group_id: str) -> str:
+    """
+    List sections inside a section group.
+
+    Args:
+        group_id: ID of the section group
+
     Returns:
         JSON string containing section information
     """
     try:
-        sections = await make_graph_request(f"/me/onenote/notebooks/{notebook_id}/sections")
-        
-        result = []
-        for section in sections.get("value", []):
-            result.append({
-                "id": section.get("id"),
-                "name": section.get("displayName"),
-                "created": section.get("createdDateTime"),
-                "modified": section.get("lastModifiedDateTime")
-            })
-        
-        return json.dumps(result, indent=2)
-    
+        sections = await make_graph_request(f"/me/onenote/sectionGroups/{group_id}/sections")
+        return json.dumps(_parse_sections(sections.get("value", [])), indent=2)
     except Exception as e:
-        return f"Error listing sections: {str(e)}"
+        return f"Error listing sections in group: {str(e)}"
+
+@mcp.tool()
+async def list_sections(notebook_id: str) -> str:
+    """
+    List all sections in a notebook, including sections inside section groups.
+    Results from section groups include a group_name field.
+
+    Args:
+        notebook_id: ID of the notebook to list sections from
+
+    Returns:
+        JSON string containing section information
+    """
+    all_sections = []
+
+    # Root-level sections
+    try:
+        resp = await make_graph_request(f"/me/onenote/notebooks/{notebook_id}/sections")
+        all_sections.extend(_parse_sections(resp.get("value", [])))
+    except Exception:
+        pass
+
+    # Sections inside section groups (recurse one level of nesting)
+    try:
+        groups_resp = await make_graph_request(f"/me/onenote/notebooks/{notebook_id}/sectionGroups")
+        for group in groups_resp.get("value", []):
+            group_id = group.get("id")
+            group_name = group.get("displayName")
+            try:
+                sections_resp = await make_graph_request(f"/me/onenote/sectionGroups/{group_id}/sections")
+                all_sections.extend(_parse_sections(sections_resp.get("value", []), group_name=group_name))
+            except Exception:
+                pass
+
+            # One level of nested groups
+            try:
+                nested_resp = await make_graph_request(f"/me/onenote/sectionGroups/{group_id}/sectionGroups")
+                for nested_group in nested_resp.get("value", []):
+                    nested_id = nested_group.get("id")
+                    nested_name = f"{group_name} > {nested_group.get('displayName')}"
+                    try:
+                        nested_sections_resp = await make_graph_request(f"/me/onenote/sectionGroups/{nested_id}/sections")
+                        all_sections.extend(_parse_sections(nested_sections_resp.get("value", []), group_name=nested_name))
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+    except Exception as e:
+        if not all_sections:
+            return f"Error listing sections: {str(e)}"
+
+    return json.dumps(all_sections, indent=2)
+
+@mcp.tool()
+async def get_notebook_structure(notebook_id: str) -> str:
+    """
+    Get the full structure of a notebook as a tree: root sections and section groups
+    with their sections, recursing one level into nested section groups.
+
+    Args:
+        notebook_id: ID of the notebook
+
+    Returns:
+        JSON string containing the full notebook tree
+    """
+    async def build_group_tree(group_id: str, group_name: str) -> dict:
+        sections = []
+        nested_groups = []
+
+        try:
+            resp = await make_graph_request(f"/me/onenote/sectionGroups/{group_id}/sections")
+            sections = _parse_sections(resp.get("value", []))
+        except Exception:
+            pass
+
+        try:
+            nested_resp = await make_graph_request(f"/me/onenote/sectionGroups/{group_id}/sectionGroups")
+            for ng in nested_resp.get("value", []):
+                ng_id = ng.get("id")
+                ng_sections = []
+                try:
+                    ng_sections_resp = await make_graph_request(f"/me/onenote/sectionGroups/{ng_id}/sections")
+                    ng_sections = _parse_sections(ng_sections_resp.get("value", []))
+                except Exception:
+                    pass
+                nested_groups.append({
+                    "id": ng_id,
+                    "name": ng.get("displayName"),
+                    "sections": ng_sections,
+                    "section_groups": []
+                })
+        except Exception:
+            pass
+
+        return {
+            "id": group_id,
+            "name": group_name,
+            "sections": sections,
+            "section_groups": nested_groups
+        }
+
+    try:
+        notebook_resp = await make_graph_request(f"/me/onenote/notebooks/{notebook_id}")
+        notebook_name = notebook_resp.get("displayName", notebook_id)
+    except Exception:
+        notebook_name = notebook_id
+
+    root_sections = []
+    try:
+        resp = await make_graph_request(f"/me/onenote/notebooks/{notebook_id}/sections")
+        root_sections = _parse_sections(resp.get("value", []))
+    except Exception:
+        pass
+
+    section_groups = []
+    try:
+        groups_resp = await make_graph_request(f"/me/onenote/notebooks/{notebook_id}/sectionGroups")
+        for group in groups_resp.get("value", []):
+            section_groups.append(await build_group_tree(group.get("id"), group.get("displayName")))
+    except Exception as e:
+        return f"Error getting notebook structure: {str(e)}"
+
+    return json.dumps({
+        "notebook_id": notebook_id,
+        "notebook_name": notebook_name,
+        "root_sections": root_sections,
+        "section_groups": section_groups
+    }, indent=2)
 
 @mcp.tool()
 async def list_pages(section_id: str) -> str:
