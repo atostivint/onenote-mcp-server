@@ -109,7 +109,8 @@ The default configuration is read-only and requests only `Notes.Read` and `User.
       ],
       "env": {
         "AZURE_CLIENT_ID": "your-azure-client-id-here",
-        "ONENOTE_CACHE_TOKENS": "true"
+        "ONENOTE_CACHE_TOKENS": "true",
+        "ONENOTE_TOKEN_CACHE_FILE": "/FULL/PATH/TO/.onenote_mcp_tokens.json"
       }
     }
   }
@@ -184,6 +185,7 @@ By default, authentication tokens are cached securely on your local machine so y
 **Token caching options:**
 - `ONENOTE_CACHE_TOKENS=true` (default) - Tokens persist across sessions
 - `ONENOTE_CACHE_TOKENS=false` - Authenticate every session (more secure)
+- `ONENOTE_TOKEN_CACHE_FILE=/path/to/tokens.json` - Store the token cache at a custom path instead of `~/.onenote_mcp_tokens.json`
 
 ### Write Access
 

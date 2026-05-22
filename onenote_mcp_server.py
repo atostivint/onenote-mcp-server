@@ -37,7 +37,7 @@ SCOPES = READ_SCOPES + ([WRITE_SCOPE] if WRITE_ACCESS_ENABLED else [])
 
 # Token cache configuration
 TOKEN_CACHE_ENABLED = os.getenv("ONENOTE_CACHE_TOKENS", "true").lower() in ("true", "1", "yes")
-TOKEN_CACHE_FILE = Path.home() / ".onenote_mcp_tokens.json"
+TOKEN_CACHE_FILE = Path(os.getenv("ONENOTE_TOKEN_CACHE_FILE", str(Path.home() / ".onenote_mcp_tokens.json"))).expanduser()
 
 # Global variables for authentication
 access_token: Optional[str] = None
@@ -67,6 +67,8 @@ def save_tokens(access_tok: str, refresh_tok: str = None, expires_in: int = 3600
         return
     
     try:
+        TOKEN_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+
         token_data = {
             "access_token": access_token,
             "refresh_token": refresh_token,
