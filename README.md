@@ -1,5 +1,7 @@
 # OneNote MCP Server
 
+> **This is a fork** of [purpleslurple/onenote-mcp-server](https://github.com/purpleslurple/onenote-mcp-server). The original project hasn't seen activity in over a year, so this fork continues development with additional features, bug fixes, and updated documentation. See the [Fork Notice](#-fork-notice) below for details.
+
 A complete, robust Model Context Protocol (MCP) server for Microsoft OneNote integration with Claude Desktop. Access your entire OneNote knowledge base through natural language queries.
 
 ## 🎯 What This Does
@@ -42,7 +44,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 ### 2. Clone and Setup
 ```bash
-git clone https://github.com/purpleslurple/onenote-mcp-server.git
+git clone https://github.com/atostivint/onenote-mcp-server.git
 cd onenote-mcp-server
 
 # Create virtual environment and install dependencies
@@ -252,6 +254,12 @@ MIT License - see LICENSE file for details.
 - Your Azure app credentials stay on your machine
 - All authentication happens directly between you and Microsoft
 - No data is sent to third parties
+
+## 🔀 Fork Notice
+
+This repository is a fork of [purpleslurple/onenote-mcp-server](https://github.com/purpleslurple/onenote-mcp-server). The original author hadn't published any updates in over a year, so this fork exists to keep the project moving: fixing bugs, adding write operations and other features, and improving documentation.
+
+Credit for the original implementation and design goes to the upstream author. If the upstream project becomes active again, contributions here may be proposed back via pull request.
 
 ---
 
