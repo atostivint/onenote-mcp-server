@@ -42,7 +42,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 ### 2. Clone and Setup
 ```bash
-git clone https://github.com/yourusername/onenote-mcp-server.git
+git clone https://github.com/purpleslurple/onenote-mcp-server.git
 cd onenote-mcp-server
 
 # Create virtual environment and install dependencies
