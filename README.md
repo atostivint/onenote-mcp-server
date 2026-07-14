@@ -35,6 +35,9 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # or with Homebrew
 brew install uv
+
+# Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
 ### 2. Clone and Setup
@@ -66,9 +69,14 @@ Still in your Azure app:
    - `Notes.Read` - Read OneNote notebooks
    - `Notes.ReadWrite` - Create/modify OneNote content (optional but recommended)
    - `User.Read` - Read user profile
-4. Click **Grant admin consent** (the button at the top)
 
-### 5. Configure Claude Desktop
+### 5. Enable Public Client Flow
+Still in your Azure app:
+1. Go to **Authentication**
+2. Under **Advanced settings**, enable **Allow public client flows**
+3. Click **Save**
+
+### 6. Configure Claude Desktop
 Edit your Claude Desktop config file:
 
 **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -115,7 +123,7 @@ Add this configuration (replace `/ABSOLUTE/PATH/TO/PARENT/FOLDER/weather` with y
 
 Replace `/FULL/PATH/TO/onenote-mcp-server` with the actual path to this project.
 
-### 6. Restart Claude Desktop
+### 7. Restart Claude Desktop
 Completely quit and restart Claude Desktop. You should see OneNote tools in the 🔨 menu.
 
 ## 🔐 First Time Authentication
